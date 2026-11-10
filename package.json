@@ -1,0 +1,36 @@
+{
+  "name": "polymarket-nl-query",
+  "version": "1.0.0",
+  "description": "Natural language to Polymarket Gamma /events/keyset query builder — Agent Skill with a zero-dependency Node.js compiler",
+  "type": "module",
+  "bin": {
+    "nlq": "./bin/nlq.mjs"
+  },
+  "exports": {
+    ".": "./bin/nlq.mjs"
+  },
+  "files": [
+    "bin",
+    "references",
+    "tests",
+    "SKILL.md",
+    "INSTALL.md",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node --test tests/nlq.test.mjs",
+    "schema": "node bin/nlq.mjs schema",
+    "doctor": "node bin/nlq.mjs doctor"
+  },
+  "keywords": [
+    "polymarket",
+    "gamma-api",
+    "agent-skill",
+    "dsh",
+    "cli"
+  ],
+  "license": "MIT"
+}

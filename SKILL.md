@@ -8,8 +8,8 @@ description: 把中文/英文自然语言检索需求翻译成 Polymarket Gamma 
 **目标接口**：`GET https://gamma-api.polymarket.com/events/keyset`（公开只读，无需 key）
 
 > ## 一条铁律
-> **语义解析你来做，参数渲染/校验/翻页交给 `bin/nlq.py`。**
-> 禁止手写 URL 交付：任何查询必须先过 `nlq.py build`，让脚本负责单位/时区/枚举/422 校验。
+> **语义解析你来做，参数渲染/校验/翻页交给 `bin/nlq.mjs`。**
+> 禁止手写 URL 交付：任何查询必须先过 `nlq.mjs build`，让脚本负责单位/时区/枚举/422 校验。
 
 ---
 
@@ -19,18 +19,18 @@ description: 把中文/英文自然语言检索需求翻译成 Polymarket Gamma 
 2. **填 intent JSON**：只许用 §三 的槽位，禁止把整句自然语言塞进去（`build` 会直接报错）。
 3. **跑校验**：
    ```bash
-   python3 ~/.agents/skills/polymarket-nl-query/bin/nlq.py build --intent '<JSON>'
+   node ~/.agents/skills/polymarket-nl-query/bin/nlq.mjs build --intent '<JSON>'
    ```
    输出 `ok / params / url / summary / warnings / unsupported`。
 4. **`ok=false` 就按 `errors` 改**：九成是槽位名写错、金额单位看不懂、标签要 id 却没给。
 5. **要真数据**（可选，需要 VPN/代理）：
    ```bash
-   PM_PROXY=http://127.0.0.1:20220 python3 .../nlq.py fetch --intent '<JSON>' --max-pages 2
+   PM_PROXY=http://127.0.0.1:20220 node .../nlq.mjs fetch --intent '<JSON>' --max-pages 2
    ```
    自动用 `next_cursor → after_cursor` 翻页，输出精简后的 events。
 6. **回复用户**：一句人话总结 + 参数表 + URL + ⚠️警告（尤其客户端还要再过滤什么）。不要只甩一个 URL。
 
-脚本路径：本 skill 目录下的 `bin/nlq.py`（默认安装位置 `~/.agents/skills/polymarket-nl-query/bin/nlq.py`）。纯标准库，Python ≥3.9，无需 pip install。
+脚本路径：本 skill 目录下的 `bin/nlq.mjs`（默认安装位置 `~/.agents/skills/polymarket-nl-query/bin/nlq.mjs`）。零第三方依赖，Node ≥18，无需 npm install。
 
 ---
 
@@ -115,7 +115,7 @@ description: 把中文/英文自然语言检索需求翻译成 Polymarket Gamma 
 
 ## 四、时间规则（默认时区 `Asia/Shanghai`）
 
-- **一律用 `nlq.py` 的时间令牌，不要自己心算日期**：`now`、`today_start`、`today_end`、`tomorrow_start`、`tomorrow_end`、`week_start`、`week_end`、`month_start`、`month_end`、`year_start`、`year_end`；相对量用 `rel:-7d` / `rel:+3h` / `rel:-2mo` / `rel:+1y`（`mo`=月，`min`=分钟；不要写裸 `m`）。
+- **一律用 `nlq.mjs` 的时间令牌，不要自己心算日期**：`now`、`today_start`、`today_end`、`tomorrow_start`、`tomorrow_end`、`week_start`、`week_end`、`month_start`、`month_end`、`year_start`、`year_end`；相对量用 `rel:-7d` / `rel:+3h` / `rel:-2mo` / `rel:+1y`（`mo`=月，`min`=分钟；不要写裸 `m`）。
 - 用户说「今天/今晚」按**用户本地日界**（默认 Asia/Shanghai），脚本自动换算成 UTC 秒级 `...Z` 输出。
 - 精确日期直接用 ISO：`2026-11-17T00:00:00Z` 或 `2026-11-17T08:00:00+08:00`。
 - 需要可复现/对账时加 `--now 2026-11-10T12:00:00Z` 冻结基准时间。
@@ -147,7 +147,7 @@ description: 把中文/英文自然语言检索需求翻译成 Polymarket Gamma 
 1. **单个**标签 → `tags: ["politics"]`，脚本能用 slug 就用 slug。
 2. **多个**标签、**排除**标签 → 必须 id：
    ```bash
-   python3 .../nlq.py tag-id --slug sports --slug soccer
+   node .../nlq.mjs tag-id --slug sports --slug soccer
    ```
    原理：拉 1 条带该 slug 的事件，从 `events[].tags[]` 里反查 id，比枚举全量标签快。
 3. 已验证 id：`politics=2`、`elections=144`、`united-states=165`、`us-presidential-election=1101`、`world-elections=101206`。
@@ -166,7 +166,7 @@ description: 把中文/英文自然语言检索需求翻译成 Polymarket Gamma 
 - 响应很大（嵌套 markets/tags/series，实测 2 条 ≈ 880KB）：批量抓取时 `limit` 取 20–50，只落需要的字段。
 - 用脚本翻页最稳：
   ```bash
-  python3 .../nlq.py fetch --url '<build 出来的 url>' --max-pages 5 --compact
+  node .../nlq.mjs fetch --url '<build 出来的 url>' --max-pages 5 --compact
   ```
 
 ---
@@ -185,9 +185,9 @@ description: 把中文/英文自然语言检索需求翻译成 Polymarket Gamma 
 
 网络（Polymarket 在国内需要代理）：
 
-1. 先跑体检：`python3 .../nlq.py doctor` —— 逐项检查 DNS / TCP 443 / 本地代理端口 / 直连 / 代理连通性，并给修复建议；
+1. 先跑体检：`node .../nlq.mjs doctor` —— 逐项检查 DNS / TCP 443 / 本地代理端口 / 直连 / 代理连通性，并给修复建议；
 2. 代理选择顺序：`--proxy` 参数 > `PM_PROXY` 环境变量 > 自动探测（20220、20221(SOCKS)、7890、7891、7897、1080、10808、6152、8888，逐个 TCP 试探）；
-3. 传输优先用 `curl`（支持 `http://` 和 `socks5h://`），失败再回退 Python urllib；不要自己写死代理地址；
+3. 传输优先用 `curl`（支持 `http://` 和 `socks5h://`），失败再回退 Node 内置 fetch（仅直连）；不要自己写死代理地址；
 4. `PM_PROXY=none` 强制直连；`PM_PROXY=auto` 强制自动探测；
 5. `fetch` 失败时先看 `doctor` 的 FAIL 项，不要无脑重试——端口没监听 = VPN 没开，端口通但 56/超时 = 节点不通或端口填错。
 
@@ -196,7 +196,7 @@ description: 把中文/英文自然语言检索需求翻译成 Polymarket Gamma 
 ## 九、回复用户的格式
 
 ```markdown
-**查询条件**（已通过 nlq.py 校验）
+**查询条件**（已通过 nlq.mjs 校验）
 | 参数 | 值 | 含义 |
 |---|---|---|
 | closed | false | 只看未结算 |
@@ -233,33 +233,33 @@ description: 把中文/英文自然语言检索需求翻译成 Polymarket Gamma 
 S=~/.agents/skills/polymarket-nl-query
 
 # 参数表 / 槽位 / 标签字典 / 中文品类候选
-python3 $S/bin/nlq.py schema
+node $S/bin/nlq.mjs schema
 
 # 意图 → 参数 + URL（离线、确定性）
-python3 $S/bin/nlq.py build --intent '{"tags":["politics"],"closed":false,"volume":{"min":"100万"},"order":"volume","ascending":false,"limit":20}'
-python3 $S/bin/nlq.py build --intent-file /tmp/intent.json --now 2026-11-10T12:00:00Z
+node $S/bin/nlq.mjs build --intent '{"tags":["politics"],"closed":false,"volume":{"min":"100万"},"order":"volume","ascending":false,"limit":20}'
+node $S/bin/nlq.mjs build --intent-file /tmp/intent.json --now 2026-11-10T12:00:00Z
 
 # 校验一段原生参数
-python3 $S/bin/nlq.py check --params '{"closed":"any","limit":200}'
+node $S/bin/nlq.mjs check --params '{"closed":"any","limit":200}'
 
 # 标签 slug → id（需网络）
-PM_PROXY=http://127.0.0.1:20220 python3 $S/bin/nlq.py tag-id --slug sports --slug soccer
+PM_PROXY=http://127.0.0.1:20220 node $S/bin/nlq.mjs tag-id --slug sports --slug soccer
 
 # 真取数：自动游标翻页（需网络）
-PM_PROXY=http://127.0.0.1:20220 python3 $S/bin/nlq.py fetch --intent '{"closed":false,"limit":5}' --max-pages 2
+PM_PROXY=http://127.0.0.1:20220 node $S/bin/nlq.mjs fetch --intent '{"closed":false,"limit":5}' --max-pages 2
 
 # 网络体检（VPN/代理是否可用）
-python3 $S/bin/nlq.py doctor
+node $S/bin/nlq.mjs doctor
 
-# 自检（38 项离线单测）
-python3 $S/tests/test_nlq.py
+# 自检（40 项离线单测）
+node --test $S/tests/nlq.test.mjs
 ```
 
 ## 文件
 
 | 文件 | 内容 |
 |---|---|
-| `bin/nlq.py` | 编译器：build / check / fetch / tag-id / tags / schema（零依赖） |
+| `bin/nlq.mjs` | 编译器：build / check / fetch / tag-id / tags / schema（零依赖） |
 | `references/params.md` | 40 个参数全表、422 清单、响应字段、与 `/events` 的差异 |
 | `references/examples.md` | 30 条中文例句 → intent → 参数（可复现） |
-| `tests/test_nlq.py` | 38 项离线单测（金额/时间/构建/校验/schema） |
+| `tests/nlq.test.mjs` | 40 项离线单测（金额/时间/构建/校验/schema） |
