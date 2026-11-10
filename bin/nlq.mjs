@@ -752,13 +752,17 @@ export async function cmdDoctor(args) {
   const probes = [];
   if (proxyUrl) probes.push(['代理', proxyUrl]);
   probes.push(['直连', null]);
+  const probeOk = {};
   for (const [label, px] of probes) {
     const t0 = Date.now();
     try {
       await httpGetJson('/tags?limit=1', px ?? 'none', 12, 0);
+      probeOk[label] = true;
       add(`${label}访问 gamma`, true, `${Date.now() - t0}ms`);
     } catch (e) {
-      add(`${label}访问 gamma`, false, String(e.message).slice(0, 120));
+      probeOk[label] = false;
+      const note = proxyUrl && label === '直连' ? '（已选代理，直连被墙属正常）' : '';
+      add(`${label}访问 gamma`, false, String(e.message).slice(0, 100) + note);
     }
   }
 
@@ -766,7 +770,8 @@ export async function cmdDoctor(args) {
   console.log(`${pad('检查', width)} ${'结果'.padEnd(6)} 详情`);
   console.log('-'.repeat(width + 60));
   for (const r of results) console.log(`${pad(r.检查, width)} ${r.结果.padEnd(6)} ${r.详情}`);
-  const okAll = results.filter((r) => r.检查.includes('访问 gamma')).every((r) => r.结果 === 'OK');
+  // 判定只看「实际要用的那条路」：选了代理就看代理，没有代理才看直连
+  const okAll = probeOk[proxyUrl ? '代理' : '直连'] === true;
   console.log();
   if (okAll) {
     console.log("✅ 可以取数：node nlq.mjs fetch --intent '{...}'");
